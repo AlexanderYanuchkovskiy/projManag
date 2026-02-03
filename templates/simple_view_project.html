@@ -1,0 +1,67 @@
+<!-- templates/simple_view_project.html - добавить кнопку редактирования -->
+{% extends "base.html" %}
+
+{% block title %}{{ project.title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">{{ project.title }}</h4>
+                {% if session.role == 'куратор' and project.curator_id == session.user_id %}
+                <a href="{{ url_for('edit_project', project_id=project.id) }}"
+                   class="btn btn-warning btn-sm">Редактировать</a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5>Описание проекта</h5>
+                    <p>{{ project.description or 'Описание отсутствует' }}</p>
+                </div>
+                <div class="col-md-6">
+                    <h5>Информация</h5>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Куратор:</span>
+                            <strong>{{ project.curator_surname }} {{ project.curator_name[0] }}. {{ project.curator_patr[0] }}.</strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Статус:</span>
+                            <strong>{{ project.status }}</strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Дедлайн:</span>
+                            <strong>{{ project.deadline or 'Не установлен' }}</strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Дата создания:</span>
+                            <strong>{{ project.created_at[:10] }}</strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Задач в проекте:</span>
+                            <strong>{{ project.task_count or 0 }}</strong>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('projects') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Назад к списку проектов
+                </a>
+                <div>
+                    <a href="{{ url_for('delete_project', project_id=project.id) }}"
+                                   class="btn btn-outline-danger"
+                                   onclick="return confirm('Вы уверены, что хотите удалить проект?')"
+                                   title="Удалить">
+                                    <i class="bi bi-trash"></i> Удалить
+                    </a>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

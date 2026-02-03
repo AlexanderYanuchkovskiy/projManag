@@ -1,0 +1,131 @@
+<!-- templates/edit_project.html -->
+{% extends "base.html" %}
+
+{% block title %}Редактирование проекта{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Редактирование проекта</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('edit_project', project_id=project.id) }}">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="title" class="form-label">Название проекта:</label>
+                                <input type="text" class="form-control" id="title" name="title"
+                                       value="{{ project.title }}" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Описание проекта:</label>
+                                <textarea class="form-control" id="description" name="description"
+                                          rows="5">{{ project.description or '' }}</textarea>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="status" class="form-label">Статус проекта:</label>
+                                <select class="form-select" id="status" name="status" required>
+                                    <option value="планирование" {% if project.status == 'планирование' %}selected{% endif %}>Планирование</option>
+                                    <option value="активен" {% if project.status == 'активен' %}selected{% endif %}>Активен</option>
+                                    <option value="завершён" {% if project.status == 'завершён' %}selected{% endif %}>Завершён</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="deadline" class="form-label">Срок выполнения:</label>
+                                <input type="date" class="form-control" id="deadline" name="deadline"
+                                       value="{{ project.deadline or '' }}">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Куратор:</label>
+                                <div class="form-control-plaintext">
+                                    <strong>{{ project.curator_surname }} {{ project.curator_name[0] }}. {{ project.curator_patr[0] }}.</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Назначить курсантов:</label>
+                        <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                            {% for cadet in cadets %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox"
+                                       name="cadet_id" value="{{ cadet.id }}"
+                                       id="cadet{{ cadet.id }}"
+                                       {% if cadet.id|string in current_cadet_ids %}checked{% endif %}>
+                                <label class="form-check-label" for="cadet{{ cadet.id }}">
+                                    {{ cadet.surname }} {{ cadet.username }}
+                                </label>
+                            </div>
+                            {% else %}
+                            <div class="text-muted">Нет доступных курсантов</div>
+                            {% endfor %}
+                        </div>
+                        <small class="form-text text-muted">
+                            При изменении состава курсантов будут созданы/удалены задачи
+                        </small>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                        <a href="{{ url_for('view_project', project_id=project.id) }}" class="btn btn-secondary">Отмена</a>
+                        <a href="{{ url_for('projects') }}" class="btn btn-link">Вернуться к списку проектов</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Информация о проекте -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0">Информация о проекте</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Дата создания:</strong> {{ project.created_at }}</p>
+                        <p><strong>Всего задач:</strong> {{ project.task_count or 0 }}</p>
+                        <p><strong>Завершено задач:</strong> {{ project.completed_tasks or 0 }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        {% if project.task_count and project.task_count > 0 %}
+                            {% set progress = ((project.completed_tasks or 0) / project.task_count * 100)|round %}
+                            <p><strong>Прогресс:</strong> {{ progress }}%</p>
+                            <div class="progress">
+                                <div class="progress-bar bg-success" role="progressbar"
+                                     style="width: {{ progress }}%"
+                                     aria-valuenow="{{ progress }}"
+                                     aria-valuemin="0"
+                                     aria-valuemax="100">
+                                    {{ progress }}%
+                                </div>
+                            </div>
+                        {% else %}
+                            <p class="text-muted">Нет задач для отображения прогресса</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Установка минимальной даты для дедлайна - сегодня
+document.addEventListener('DOMContentLoaded', function() {
+    const deadlineInput = document.getElementById('deadline');
+    if (deadlineInput) {
+        const today = new Date().toISOString().split('T')[0];
+        deadlineInput.min = today;
+    }
+});
+</script>
+{% endblock %}

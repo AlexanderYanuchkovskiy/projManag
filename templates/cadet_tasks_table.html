@@ -1,0 +1,336 @@
+<!-- templates/cadet_tasks_table.html -->
+{% extends "base.html" %}
+
+{% block title %}Мои задачи - Таблица{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Заголовок -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-0">Мои задачи</h2>
+                    <p class="text-muted mb-0">Табличный просмотр всех задач</p>
+                </div>
+                <div>
+                    <a href="{{ url_for('cadet_tasks') }}" class="btn btn-outline-secondary me-2">
+                        <i class="bi bi-grid"></i> Карточки
+                    </a>
+                    <a href="{{ url_for('cadet_dashboard') }}" class="btn btn-secondary">
+                        <i class="bi bi-house-door"></i> На главную
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Фильтры и статистика -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Фильтр по статусу:</label>
+                            <select class="form-select" id="statusFilter">
+                                <option value="all">Все статусы</option>
+                                <option value="ожидает">Ожидает</option>
+                                <option value="в работе">В работе</option>
+                                <option value="на проверке">На проверке</option>
+                                <option value="завершена">Завершена</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Фильтр по проекту:</label>
+                            <select class="form-select" id="projectFilter">
+                                <option value="all">Все проекты</option>
+                                {% for project in projects|unique(attribute='project_title') %}
+                                <option value="{{ project.project_title }}">{{ project.project_title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Всего задач</h5>
+                    <p class="card-text display-4">{{ tasks|length }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Таблица задач -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Список задач</h5>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="refreshTable">
+                            <i class="bi bi-arrow-clockwise"></i> Обновить
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="tasksTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="5%">ID</th>
+                                    <th width="20%">Название задачи</th>
+                                    <th width="15%">Проект</th>
+                                    <th width="10%">Статус</th>
+                                    <th width="15%">Срок выполнения</th>
+                                    <th width="15%">Куратор</th>
+                                    <th width="10%">Дата создания</th>
+                                    <th width="10%">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in tasks %}
+                                <tr class="task-row" 
+                                    data-status="{{ task.status_name }}"
+                                    data-project="{{ task.project_title }}"
+                                    data-due-date="{{ task.due_date or '' }}">
+                                    <td>{{ task.id }}</td>
+                                    <td>
+                                        <strong>{{ task.title }}</strong>
+                                        {% if task.description %}
+                                        <br>
+                                        <small class="text-muted">{{ task.description|truncate(80) }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-folder2 me-2 text-primary"></i>
+                                            <div>
+                                                <strong>{{ task.project_title }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ task.project_status }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if task.status_name == 'ожидает' %}
+                                        <span class="badge bg-secondary">
+                                            <i class="bi bi-clock"></i> Ожидает
+                                        </span>
+                                        {% elif task.status_name == 'в работе' %}
+                                        <span class="badge bg-warning">
+                                            <i class="bi bi-gear"></i> В работе
+                                        </span>
+                                        {% elif task.status_name == 'на проверке' %}
+                                        <span class="badge bg-info">
+                                            <i class="bi bi-search"></i> На проверке
+                                        </span>
+                                        {% elif task.status_name == 'завершена' %}
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-check-circle"></i> Завершена
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if task.due_date %}
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-calendar3 me-2 {% if task.due_date < now.strftime('%Y-%m-%d') %}text-danger{% else %}text-primary{% endif %}"></i>
+                                            <div>
+                                                {{ task.due_date }}
+                                                {% if task.due_date < now.strftime('%Y-%m-%d') %}
+                                                <br>
+                                                <small class="text-danger">Просрочено</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <span class="text-muted">Не указан</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-person-circle me-2 text-primary"></i>
+                                            <div>
+                                                {{ task.curator_name }}
+                                                <br>
+                                                <small class="text-muted">Куратор</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <small>{{ task.created_at[:10] }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ url_for('cadet_task_detail', task_id=task.id) }}" 
+                                               class="btn btn-outline-primary" 
+                                               title="Просмотр задачи">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            
+                                            {% if task.status_code == 1 %}
+                                            <form method="POST" action="{{ url_for('cadet_task_detail', task_id=task.id) }}" 
+                                                  style="display: inline;" 
+                                                  onsubmit="return confirm('Начать работу над этой задачей?')">
+                                                <input type="hidden" name="status_code" value="2">
+                                                <button type="submit" class="btn btn-outline-success" title="Начать работу">
+                                                    <i class="bi bi-play-circle"></i>
+                                                </button>
+                                            </form>
+                                            {% elif task.status_code == 2 %}
+                                            <form method="POST" action="{{ url_for('cadet_task_detail', task_id=task.id) }}" 
+                                                  style="display: inline;" 
+                                                  onsubmit="return confirm('Отправить задачу на проверку?')">
+                                                <input type="hidden" name="status_code" value="3">
+                                                <button type="submit" class="btn btn-outline-info" title="Отправить на проверку">
+                                                    <i class="bi bi-send-check"></i>
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-4">
+                                        <div class="text-muted">
+                                            <i class="bi bi-inbox display-4"></i>
+                                            <h4 class="mt-3">Задачи не найдены</h4>
+                                            <p>У вас пока нет назначенных задач</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {% if tasks %}
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            Показано <span id="visibleCount">{{ tasks|length }}</span> из {{ tasks|length }} задач
+                        </small>
+                        <small class="text-muted">
+                            Для просмотра деталей нажмите <i class="bi bi-eye text-primary"></i>
+                        </small>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript для фильтрации -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const statusFilter = document.getElementById('statusFilter');
+    const projectFilter = document.getElementById('projectFilter');
+    const refreshButton = document.getElementById('refreshTable');
+    const taskRows = document.querySelectorAll('.task-row');
+    const visibleCount = document.getElementById('visibleCount');
+    
+    function filterTable() {
+        const statusValue = statusFilter.value;
+        const projectValue = projectFilter.value;
+        let visibleRows = 0;
+        
+        taskRows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            const rowProject = row.getAttribute('data-project');
+            
+            const statusMatch = statusValue === 'all' || rowStatus === statusValue;
+            const projectMatch = projectValue === 'all' || rowProject === projectValue;
+            
+            if (statusMatch && projectMatch) {
+                row.style.display = '';
+                visibleRows++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        if (visibleCount) {
+            visibleCount.textContent = visibleRows;
+        }
+    }
+    
+    // Применяем фильтры при изменении
+    statusFilter.addEventListener('change', filterTable);
+    projectFilter.addEventListener('change', filterTable);
+    
+    // Обновление таблицы
+    refreshButton.addEventListener('click', function() {
+        window.location.reload();
+    });
+    
+    // Подсветка просроченных задач
+    taskRows.forEach(row => {
+        const dueDate = row.getAttribute('data-due-date');
+        if (dueDate) {
+            const today = new Date().toISOString().split('T')[0];
+            if (dueDate < today) {
+                row.classList.add('table-danger');
+            }
+        }
+    });
+    
+    // Инициализация
+    filterTable();
+});
+</script>
+
+<style>
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+    transform: translateX(2px);
+    transition: all 0.2s ease;
+}
+
+.table-danger {
+    background-color: rgba(220, 53, 69, 0.05);
+}
+
+.badge {
+    font-weight: 500;
+    padding: 0.5em 0.8em;
+}
+
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+}
+
+.card {
+    border: 1px solid rgba(0,0,0,.125);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0,0,0,.125);
+}
+
+#refreshTable:hover {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.text-muted {
+    font-size: 0.9rem;
+}
+</style>
+{% endblock %}

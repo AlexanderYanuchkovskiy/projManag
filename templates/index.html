@@ -1,0 +1,50 @@
+<!-- templates/index.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8 text-center">
+        <h1 class="mb-4">Система управления учебными проектами</h1>
+        <p class="lead mb-5">Платформа для взаимодействия кураторов и курсантов в рамках учебных проектов</p>
+
+        <div class="row justify-content-center">
+            {% if not session.user_id %}
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Куратор</h5>
+                        <p class="card-text">Регистрация и управление проектами</p>
+                        <a href="{{ url_for('register') }}" class="btn btn-primary btn-custom">Зарегистрироваться</a>
+                        <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-custom">Войти</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Курсант</h5>
+                        <p class="card-text">Вход в систему для работы с задачами</p>
+                        <a href="{{ url_for('cadet_login') }}" class="btn btn-success btn-custom">Войти как курсант</a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Добро пожаловать, {{ session.username }}!</h5>
+                        <p class="card-text">Вы вошли как <strong>{{ session.role }}</strong></p>
+                        {% if session.role == 'куратор' %}
+                            <a href="{{ url_for('curator_dashboard') }}" class="btn btn-primary">Перейти в панель куратора</a>
+                        {% else %}
+                            <a href="{{ url_for('cadet_dashboard') }}" class="btn btn-success">Перейти в панель курсанта</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

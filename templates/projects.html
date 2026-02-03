@@ -1,0 +1,175 @@
+<!-- templates/projects.html -->
+{% extends "base.html" %}
+
+{% block title %}Управление проектами{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="bi bi-kanban-fill text-primary"></i> Управление проектами
+    </h2>
+    <a href="{{ url_for('create_project') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Создать проект
+    </a>
+
+</div>
+
+<!-- Статистика проектов -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Всего проектов</h6>
+                        <h3 class="mb-0">{{ projects|length }}</h3>
+                    </div>
+                    <i class="bi bi-kanban fs-1"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Планирование</h6>
+                        <h3 class="mb-0">{{ projects|selectattr('status', 'equalto', 'планирование')|list|length }}</h3>
+                    </div>
+                    <i class="bi bi-clock fs-1"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Активные</h6>
+                        <h3 class="mb-0">{{ projects|selectattr('status', 'equalto', 'активен')|list|length }}</h3>
+                    </div>
+                    <i class="bi bi-play-circle fs-1"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-secondary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Завершённые</h6>
+                        <h3 class="mb-0">{{ projects|selectattr('status', 'equalto', 'завершён')|list|length }}</h3>
+                    </div>
+                    <i class="bi bi-check-circle fs-1"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Список проектов -->
+<div class="card">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Список проектов</h5>
+    </div>
+    <div class="card-body">
+        {% if projects %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Название</th>
+                        <th>Статус</th>
+                        <th>Куратор</th>
+                        <th>Дедлайн</th>
+                        <th>Дата создания</th>
+                        <th>Задачи</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for project in projects %}
+                    <tr>
+                        <td>
+                            <strong>{{ project.title }}</strong>
+                            {% if project.description %}
+                            <p class="text-muted small mb-0">{{ project.description[:100] }}{% if project.description|length > 100 %}...{% endif %}</p>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if project.status == 'планирование' %}
+                            <span class="badge bg-info">Планирование</span>
+                            {% elif project.status == 'активен' %}
+                            <span class="badge bg-success">Активен</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Завершён</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ project.curator_surname }} {{ project.curator_name[0] }}. {{ project.curator_patr[0] }}.</td>
+                        <td>
+                            {% if project.deadline %}
+                                {% if project.status != 'завершён' %}
+                                    {% set deadline_date = project.deadline.split('-') %}
+                                    {% set days_left = (deadline_date[2]|int - now.day) + (deadline_date[1]|int - now.month)*30 + (deadline_date[0]|int - now.year)*365 %}
+                                    {% if days_left < 0 %}
+                                        <span class="text-danger">
+                                            <i class="bi bi-exclamation-triangle"></i> {{ project.deadline }}
+                                        </span>
+                                    {% elif days_left <= 7 %}
+                                        <span class="text-warning">
+                                            <i class="bi bi-clock"></i> {{ project.deadline }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-success">{{ project.deadline }}</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">{{ project.deadline }}</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">Не установлен</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ project.created_at[:10] }}</td>
+                        <td>
+                            <span class="badge bg-primary">{{ project.task_count or 0 }}</span>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('view_project', project_id=project.id) }}"
+                                   class="btn btn-outline-primary" title="Просмотр">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ url_for('edit_project', project_id=project.id) }}"
+                                   class="btn btn-outline-warning" title="Редактировать">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{{ url_for('delete_project', project_id=project.id) }}"
+                                   class="btn btn-outline-danger"
+                                   onclick="return confirmDelete('Вы уверены, что хотите удалить проект \"{{ project.title }}\"?\n\nЭто действие нельзя отменить!')"
+                                   title="Удалить">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-kanban text-muted fs-1"></i>
+            <h5 class="mt-3">Проекты отсутствуют</h5>
+            <p class="text-muted">Создайте первый проект для начала работы</p>
+            <a href="{{ url_for('create_project') }}" class="btn btn-primary mt-2">
+                <i class="bi bi-plus-circle"></i> Создать проект
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

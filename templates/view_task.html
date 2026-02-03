@@ -1,0 +1,420 @@
+<!-- templates/view_task.html -->
+{% extends "base.html" %}
+
+{% block title %}Задача: {{ task.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Хлебные крошки -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('tasks') }}">Задачи</a></li>
+            <li class="breadcrumb-item active">Задача #{{ task.id }}</li>
+        </ol>
+    </nav>
+
+    <!-- Заголовок задачи -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h2 class="mb-2">{{ task.title }}</h2>
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="badge {% if task.status_name == 'ожидает' %}bg-secondary
+                                                    {% elif task.status_name == 'в работе' %}bg-warning
+                                                    {% elif task.status_name == 'на проверке' %}bg-info
+                                                    {% elif task.status_name == 'завершена' %}bg-success{% endif %}
+                                                    fs-6 me-3">
+                                    {{ task.status_name|upper }}
+                                </span>
+                                <span class="text-muted">#{{ task.id }}</span>
+                            </div>
+                        </div>
+
+                        {% if user_role == 'куратор' and task.status_name == 'на проверке' %}
+                        <div class="btn-group">
+                            <form method="POST" action="{{ url_for('view_task', task_id=task.id) }}"
+                                  style="display: inline;"
+                                  onsubmit="return confirm('Вы уверены, что хотите одобрить эту задачу?')">
+                                <input type="hidden" name="action" value="approve">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-check-circle"></i> Одобрить
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('view_task', task_id=task.id) }}"
+                                  style="display: inline;"
+                                  onsubmit="return confirm('Вы уверены, что хотите отклонить эту задачу и вернуть в работу?')">
+                                <input type="hidden" name="action" value="reject">
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="bi bi-x-circle"></i> Отклонить
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Основная информация о задаче -->
+        <div class="col-lg-8">
+            <!-- Описание -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-card-text"></i> Описание задачи
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if task.description %}
+                    <div class="task-description">
+                        {{ task.description|replace('\n', '<br>')|safe }}
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">Описание отсутствует</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Информация о курсанте (для куратора) -->
+            {% if user_role == 'куратор' %}
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-circle"></i> Информация о курсанте
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>{{ task.cadet_surname }} {{ task.cadet_name }}</h5>
+                            <p class="text-muted">
+                                <i class="bi bi-envelope"></i> {{ task.cadet_email }}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Прогресс по проекту</h6>
+                                    <div class="d-flex justify-content-around mt-3">
+                                        <div class="text-center">
+                                            <h4 class="text-primary">{{ cadet_total_tasks }}</h4>
+                                            <small>Всего задач</small>
+                                        </div>
+                                        <div class="text-center">
+                                            <h4 class="text-success">{{ cadet_completed_tasks }}</h4>
+                                            <small>Завершено</small>
+                                        </div>
+                                        <div class="text-center">
+                                            <h4 class="text-info">{{ cadet_in_review_tasks }}</h4>
+                                            <small>На проверке</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Боковая панель с информацией -->
+        <div class="col-lg-4">
+            <!-- Информация о проекте -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-folder2"></i> Проект
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h5>{{ task.project_title }}</h5>
+                    {% if task.project_description %}
+                    <p class="text-muted small">{{ task.project_description|truncate(100) }}</p>
+                    {% endif %}
+
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span>Статус проекта:</span>
+                            <span class="badge bg-secondary">{{ task.project_status }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span>Дедлайн проекта:</span>
+                            <strong>{{ task.project_deadline or 'Не установлен' }}</strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span>Куратор:</span>
+                            <strong>{{ task.curator_surname }} {{ task.curator_name }}</strong>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Детали задачи -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle"></i> Детали задачи
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span>Дата создания:</span>
+                            <strong>{{ task.created_at[:10] }}</strong>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span>Последнее обновление:</span>
+                            <strong>{{ task.updated_at[:10] }}</strong>
+                        </li>
+                        {% if task.due_date %}
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span>Срок выполнения:</span>
+                            <strong class="{% if task.due_date < now.strftime('%Y-%m-%d') %}text-danger{% endif %}">
+                                {{ task.due_date }}
+                            </strong>
+                        </li>
+                        {% endif %}
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span>Курсант:</span>
+                            <strong>{{ task.cadet_surname }} {{ task.cadet_name }}</strong>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Загруженные файлы -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-files"></i> Загруженные файлы
+                        <span class="badge bg-primary ms-2">{{ files|length }}</span>
+                    </h5>
+                    {% if files|length > 0 %}
+                    <small class="text-muted">Последнее обновление: {{ files[0].upload_time[:16] if files else '' }}</small>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if files %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Файл</th>
+                                    <th>Автор</th>
+                                    <th>Дата загрузки</th>
+                                    <th>Размер</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for file in files %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if file.mime_type and 'image' in file.mime_type %}
+                                            <i class="bi bi-file-image fs-4 text-primary me-3"></i>
+                                            {% elif file.mime_type and 'pdf' in file.mime_type %}
+                                            <i class="bi bi-file-pdf fs-4 text-danger me-3"></i>
+                                            {% elif file.mime_type and 'word' in file.mime_type or file.filename.endswith('.doc') or file.filename.endswith('.docx') %}
+                                            <i class="bi bi-file-word fs-4 text-primary me-3"></i>
+                                            {% elif file.mime_type and 'zip' in file.mime_type or file.filename.endswith('.zip') or file.filename.endswith('.rar') %}
+                                            <i class="bi bi-file-zip fs-4 text-warning me-3"></i>
+                                            {% else %}
+                                            <i class="bi bi-file-earmark fs-4 text-secondary me-3"></i>
+                                            {% endif %}
+                                            <div>
+                                                <strong>{{ file.filename }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ file.mime_type or 'Неизвестный тип' }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {{ file.author_surname }} {{ file.author_name }}
+                                        <br>
+                                        <small class="text-muted">{{ file.upload_time[:10] }}</small>
+                                    </td>
+                                    <td>{{ file.upload_time[:16] }}</td>
+                                    <td>
+                                        {% if file.file_size > 1024*1024 %}
+                                        {{ (file.file_size / (1024*1024))|round(2) }} MB
+                                        {% elif file.file_size > 1024 %}
+                                        {{ (file.file_size / 1024)|round(1) }} KB
+                                        {% else %}
+                                        {{ file.file_size }} B
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="/download/{{ file.id }}"
+                                               class="btn btn-outline-primary"
+                                               title="Скачать"
+                                               target="_blank">
+                                                <i class="bi bi-download"></i>
+                                            </a>
+                                            {% if user_role == 'куратор' %}
+                                            <a href="#"
+                                               class="btn btn-outline-info"
+                                               title="Предпросмотр"
+                                               data-bs-toggle="modal"
+                                               data-bs-target="#previewModal{{ file.id }}">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Модальное окно для предпросмотра -->
+                                        {% if user_role == 'куратор' %}
+                                        <div class="modal fade" id="previewModal{{ file.id }}" tabindex="-1">
+                                            <div class="modal-dialog modal-lg">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Предпросмотр: {{ file.filename }}</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body text-center">
+                                                        {% if file.mime_type and 'image' in file.mime_type %}
+                                                        <img src="/download/{{ file.id }}"
+                                                             class="img-fluid"
+                                                             alt="{{ file.filename }}">
+                                                        {% elif file.mime_type and 'pdf' in file.mime_type %}
+                                                        <div class="alert alert-info">
+                                                            <i class="bi bi-file-pdf display-4"></i>
+                                                            <p class="mt-3">PDF файл можно скачать для просмотра</p>
+                                                        </div>
+                                                        {% elif file.mime_type and 'text' in file.mime_type or file.filename.endswith('.txt') %}
+                                                        <pre class="text-start bg-light p-3 rounded">{{ file.content_preview }}</pre>
+                                                        {% else %}
+                                                        <div class="alert alert-warning">
+                                                            <i class="bi bi-file-earmark"></i>
+                                                            <p class="mt-2">Предпросмотр недоступен для этого типа файла</p>
+                                                        </div>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                                                        <a href="/download/{{ file.id }}"
+                                                           class="btn btn-primary"
+                                                           download>
+                                                            <i class="bi bi-download"></i> Скачать
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-cloud-upload display-4 text-muted"></i>
+                        <p class="text-muted mt-3">К этой задаче еще не загружены файлы</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% if user_role == 'куратор' %}
+                <div class="card-footer">
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle"></i>
+                        Для проверки задачи просмотрите загруженные файлы, затем одобрите или отклоните задачу
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Кнопки действий -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('tasks') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Назад к списку задач
+                </a>
+
+                {% if user_role == 'куратор' and task.status_name == 'на проверке' %}
+                <div class="btn-group">
+                    <form method="POST" action="{{ url_for('view_task', task_id=task.id) }}"
+                          onsubmit="return confirm('Вы уверены, что хотите отклонить эту задачу?')">
+                        <input type="hidden" name="action" value="reject">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-x-circle"></i> Отклонить и вернуть в работу
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('view_task', task_id=task.id) }}"
+                          onsubmit="return confirm('Вы уверены, что хотите одобрить и завершить эту задачу?')">
+                        <input type="hidden" name="action" value="approve">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> Одобрить и завершить
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0,0,0,.125);
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(0,0,0,.125);
+    background-color: #f8f9fa;
+}
+
+.breadcrumb {
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+}
+
+.task-description {
+    line-height: 1.6;
+    font-size: 1.05rem;
+    white-space: pre-wrap;
+}
+
+.badge {
+    font-weight: 500;
+    padding: 0.5em 1em;
+}
+
+.list-group-item {
+    border: none;
+    padding: 0.5rem 0;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.btn-group .btn {
+    border-radius: 0.375rem;
+}
+</style>
+{% endblock %}

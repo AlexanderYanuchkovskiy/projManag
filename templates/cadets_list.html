@@ -1,0 +1,264 @@
+<!-- templates/cadets_list.html -->
+{% extends "base.html" %}
+
+{% block title %}Список курсантов{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>Список курсантов</h2>
+                <a href="{{ url_for('register_cadet') }}" class="btn btn-primary">
+                    Добавить курсанта
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Панель поиска и фильтров -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Поиск и фильтрация</h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('cadets_list') }}" class="row g-3">
+                        <div class="col-md-6">
+                            <label for="search" class="form-label">Поиск по ФИО или Email:</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="search" name="search"
+                                       placeholder="Введите фамилию, имя, отчество или email..."
+                                       value="{{ search_query }}">
+                                <button class="btn btn-outline-secondary" type="submit">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="group" class="form-label">Фильтр по группе:</label>
+                            <select class="form-select" id="group" name="group">
+                                <option value="">Все группы</option>
+                                {% for group in unique_groups %}
+                                <option value="{{ group }}" {% if group_filter == group %}selected{% endif %}>
+                                    {{ group }}
+                                </option>
+                                {% endfor %}
+                                <option value="без группы" {% if group_filter == 'без группы' %}selected{% endif %}>
+                                    Без группы
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-2 d-flex align-items-end">
+                            <div class="d-grid w-100">
+                                <button type="submit" class="btn btn-primary">Применить</button>
+                            </div>
+                        </div>
+
+                        {% if search_query or group_filter %}
+                        <div class="col-12">
+                            <div class="d-flex align-items-center">
+                                <span class="me-3">Примененные фильтры:</span>
+                                {% if search_query %}
+                                <span class="badge bg-info me-2">
+                                    Поиск: "{{ search_query }}"
+                                    <a href="{{ url_for('cadets_list', group=group_filter) }}" class="text-white ms-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-x" viewBox="0 0 16 16">
+                                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                                        </svg>
+                                    </a>
+                                </span>
+                                {% endif %}
+                                {% if group_filter %}
+                                <span class="badge bg-warning me-2">
+                                    Группа: {{ group_filter if group_filter != 'без группы' else 'Без группы' }}
+                                    <a href="{{ url_for('cadets_list', search=search_query) }}" class="text-dark ms-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-x" viewBox="0 0 16 16">
+                                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                                        </svg>
+                                    </a>
+                                </span>
+                                {% endif %}
+                                <a href="{{ url_for('cadets_list') }}" class="btn btn-sm btn-outline-secondary">
+                                    Сбросить все
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <!-- Таблица курсантов -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Курсанты</h5>
+                    {% if cadets %}
+                    <small class="text-muted">
+                        Показано {{ filtered_cadets }} из {{ total_cadets }}
+                    </small>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if cadets %}
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="cadetsTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>ФИО</th>
+                                    <th>Email</th>
+                                    <th>Академическая группа</th>
+                                    <th>Дата регистрации</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cadet in cadets %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>
+                                        <strong>{{ cadet.surname }} {{ cadet.username }}</strong>
+                                        {% if cadet.patronymic %}
+                                        <br>
+                                        <small class="text-muted">{{ cadet.patronymic }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="mailto:{{ cadet.email }}" class="text-decoration-none">
+                                            {{ cadet.email }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if cadet.academic_group %}
+                                        <a href="{{ url_for('cadets_list', group=cadet.academic_group) }}"
+                                           class="badge bg-info text-decoration-none">
+                                            {{ cadet.academic_group }}
+                                        </a>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Без группы</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ cadet.registration_date }}</small>
+                                    </td>
+
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <div class="mb-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-search text-muted" viewBox="0 0 16 16">
+                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                            </svg>
+                        </div>
+                        <h4 class="text-muted">Курсанты не найдены</h4>
+                        <p class="text-muted">
+                            {% if search_query or group_filter %}
+                                Попробуйте изменить параметры поиска
+                            {% else %}
+                                Добавьте первого курсанта, чтобы начать работу
+                            {% endif %}
+                        </p>
+                        {% if search_query or group_filter %}
+                        <a href="{{ url_for('cadets_list') }}" class="btn btn-secondary mt-3">
+                            Показать всех курсантов
+                        </a>
+                        {% else %}
+                        <a href="{{ url_for('register_cadet') }}" class="btn btn-primary mt-3">
+                            Добавить курсанта
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% if cadets %}
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            Всего записей: {{ filtered_cadets }}
+                        </small>
+                        {% if search_query or group_filter %}
+                        <a href="{{ url_for('cadets_list') }}" class="btn btn-sm btn-outline-secondary">
+                            Сбросить фильтры
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript для улучшения UX -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Автофокус на поле поиска при загрузке страницы
+    const searchInput = document.getElementById('search');
+    if (searchInput && searchInput.value === '') {
+        searchInput.focus();
+    }
+
+    // Автоматическая отправка формы при изменении селекта группы
+    const groupSelect = document.getElementById('group');
+    if (groupSelect) {
+        groupSelect.addEventListener('change', function() {
+            if (this.form) {
+                this.form.submit();
+            }
+        });
+    }
+
+    // Подсветка строк при наведении
+    const tableRows = document.querySelectorAll('#cadetsTable tbody tr');
+    tableRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = 'rgba(0, 123, 255, 0.05)';
+        });
+        row.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+    });
+});
+</script>
+
+<!-- Стили -->
+<style>
+.table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.badge {
+    font-size: 0.9em;
+    padding: 0.5em 0.75em;
+    transition: all 0.2s;
+}
+
+.badge:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+</style>
+{% endblock %}

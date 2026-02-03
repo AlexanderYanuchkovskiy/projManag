@@ -1,0 +1,185 @@
+<!-- templates/cadet_tasks.html -->
+{% extends "base.html" %}
+
+{% block title %}Мои задачи - Карточки{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Заголовок -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">Мои задачи</h2>
+                <div>
+                    <a href="{{ url_for('cadet_tasks_table') }}" class="btn btn-outline-primary me-2">
+                        <i class="bi bi-table"></i> Таблица
+                    </a>
+                    <a href="{{ url_for('cadet_dashboard') }}" class="btn btn-secondary">
+                        <i class="bi bi-house-door"></i> На главную
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Всего задач</h5>
+                    <p class="card-text display-5">{{ total_tasks }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">В работе</h5>
+                    <p class="card-text display-5">{{ tasks_by_status['в работе'] }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">На проверке</h5>
+                    <p class="card-text display-5">{{ tasks_by_status['на проверке'] }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Завершено</h5>
+                    <p class="card-text display-5">{{ tasks_by_status['завершена'] }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Карточки задач -->
+    <div class="row">
+        {% if tasks %}
+            {% for task in tasks %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 {% if task.due_date and task.due_date < now.strftime('%Y-%m-%d') %}border-danger{% endif %}">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">#{{ task.id }} {{ task.project_title }}</h6>
+                        {% if task.status_name == 'ожидает' %}
+                        <span class="badge bg-secondary">Ожидает</span>
+                        {% elif task.status_name == 'в работе' %}
+                        <span class="badge bg-warning">В работе</span>
+                        {% elif task.status_name == 'на проверке' %}
+                        <span class="badge bg-info">На проверке</span>
+                        {% elif task.status_name == 'завершена' %}
+                        <span class="badge bg-success">Завершена</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ task.title }}</h5>
+
+                        {% if task.description %}
+                        <p class="card-text text-muted">{{ task.description|truncate(120) }}</p>
+                        {% endif %}
+
+                        <div class="task-meta mb-3">
+                            <p class="mb-1">
+                                <i class="bi bi-person-badge"></i> Куратор: {{ task.curator_name }}
+                            </p>
+                            {% if task.due_date %}
+                            <p class="mb-1 {% if task.due_date < now.strftime('%Y-%m-%d') %}text-danger{% endif %}">
+                                <i class="bi bi-calendar-event"></i> Срок: {{ task.due_date }}
+                                {% if task.due_date < now.strftime('%Y-%m-%d') %}
+                                <span class="badge bg-danger ms-2">Просрочено</span>
+                                {% endif %}
+                            </p>
+                            {% endif %}
+                            <p class="mb-0">
+                                <i class="bi bi-clock"></i> Создана: {{ task.created_at[:10] }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('cadet_task_detail', task_id=task.id) }}"
+                               class="btn btn-primary btn-sm">
+                                <i class="bi bi-eye"></i> Подробнее
+                            </a>
+
+                            {% if task.status_code == 1 %}
+                            <form method="POST" action="{{ url_for('cadet_task_detail', task_id=task.id) }}"
+                                  style="display: inline;">
+                                <input type="hidden" name="status_code" value="2">
+                                <button type="submit" class="btn btn-success btn-sm"
+                                        onclick="return confirm('Начать работу над этой задачей?')">
+                                    <i class="bi bi-play-circle"></i> Начать
+                                </button>
+                            </form>
+                            {% elif task.status_code == 2 %}
+                            <form method="POST" action="{{ url_for('cadet_task_detail', task_id=task.id) }}"
+                                  style="display: inline;">
+                                <input type="hidden" name="status_code" value="3">
+                                <button type="submit" class="btn btn-info btn-sm"
+                                        onclick="return confirm('Отправить задачу на проверку?')">
+                                    <i class="bi bi-send-check"></i> На проверку
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-check2-circle display-1 text-muted"></i>
+                    <h4 class="text-muted mt-3">У вас пока нет задач</h4>
+                    <p class="text-muted">Куратор назначит вам задачи в ближайшее время</p>
+                    <a href="{{ url_for('cadet_dashboard') }}" class="btn btn-primary mt-3">
+                        <i class="bi bi-house-door"></i> На главную
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid rgba(0,0,0,.125);
+    border-radius: 0.5rem;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0,0,0,.125);
+}
+
+.task-meta {
+    font-size: 0.9rem;
+}
+
+.badge {
+    font-weight: 500;
+    padding: 0.4em 0.8em;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %}

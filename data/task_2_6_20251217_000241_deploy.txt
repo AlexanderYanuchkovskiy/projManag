@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# Настройки
+IMAGE_NAME="keply186/hashx4:latest"
+DEPLOYMENT_NAME="hashx4"
+NAMESPACE="default"
+
+echo "🚀 Starting deployment to Minikube..."
+
+# Проверяем, запущен ли Minikube
+if ! minikube status | grep -q "Running"; then
+    echo "❌ Minikube is not running. Starting Minikube..."
+    minikube start
+fi
+
+# Включаем ingress если нужен
+# minikube addons enable ingress
+
+echo "📦 Pulling image from Docker Hub..."
+minikube ssh "docker pull $IMAGE_NAME"
+
+echo "📝 Creating deployment manifest..."
+cat <<EOF | kubectl apply -f -
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: $DEPLOYMENT_NAME
+  namespace: $NAMESPACE
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hashx4
+  template:
+    metadata:
+      labels:
+        app: hashx4
+    spec:
+      containers:
+      - name: hashx4
+        image: $IMAGE_NAME
+        imagePullPolicy: Always
+        stdin: true
+        tty: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hashx4-service
+  namespace: $NAMESPACE
+spec:
+  selector:
+    app: hashx4
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+EOF
+
+echo "⏳ Waiting for deployment to be ready..."
+kubectl rollout status deployment/$DEPLOYMENT_NAME -n $NAMESPACE --timeout=60s
+
+echo "✅ Deployment completed!"
+echo ""
+echo "📋 Pods:"
+kubectl get pods -l app=hashx4
+
+echo ""
+echo "🔧 To interact with the application:"
+echo "kubectl exec -it \$(kubectl get pods -l app=hashx4 -o jsonpath='{.items[0].metadata.name}') -- python io.p>
